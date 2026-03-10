@@ -391,19 +391,19 @@ const AppContent = () => {
   }, [currentDate]);
 
   useEffect(() => {
-    const loadInitialData = async () => {
+    const loadInitialData = () => {
         try {
-            const [dataRes, profileRes] = await Promise.all([
-                fetch('/api/data'),
-                fetch('/api/profile')
-            ]);
-            if (dataRes.ok) {
-                const data = await dataRes.json();
-                dispatch({ type: 'SET_DATA', payload: data || {} });
+            const savedData = localStorage.getItem('stream_plus_data');
+            const savedProfile = localStorage.getItem('stream_plus_profile');
+            
+            if (savedData) {
+                dispatch({ type: 'SET_DATA', payload: JSON.parse(savedData) });
             }
-            if (profileRes.ok) setUserProfile(await profileRes.json());
+            if (savedProfile) {
+                setUserProfile(JSON.parse(savedProfile));
+            }
         } catch (err) {
-            console.error("Failed to fetch initial data", err);
+            console.error("Failed to load initial data from localStorage", err);
             setSyncStatus('offline');
         } finally {
             setIsLoading(false);
@@ -414,18 +414,18 @@ const AppContent = () => {
 
   useEffect(() => {
     if (isLoading) return;
-    const syncWithServer = async () => {
-        if (!navigator.onLine) { setSyncStatus('offline'); return; }
+    const syncWithLocalStorage = () => {
         setSyncStatus('syncing');
         try {
-            await Promise.all([
-                fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(appData) }),
-                fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(userProfile) })
-            ]);
+            localStorage.setItem('stream_plus_data', JSON.stringify(appData));
+            localStorage.setItem('stream_plus_profile', JSON.stringify(userProfile));
             setSyncStatus('synced');
-        } catch (err) { setSyncStatus('error'); }
+        } catch (err) { 
+            console.error("Failed to sync with localStorage", err);
+            setSyncStatus('error'); 
+        }
     };
-    const debounceTimer = setTimeout(syncWithServer, 2000);
+    const debounceTimer = setTimeout(syncWithLocalStorage, 1000);
     return () => clearTimeout(debounceTimer);
   }, [appData, userProfile, isLoading]);
 
@@ -911,7 +911,7 @@ const AppContent = () => {
                       </motion.button>
                       <motion.button 
                         whileTap={{ scale: 0.95 }}
-                        onClick={async () => {
+                        onClick={() => {
                             const defaultProfile = { 
                                 name: 'Leo Luz', 
                                 cpf: '', 
@@ -925,18 +925,11 @@ const AppContent = () => {
                                 setNotifications([]);
                                 setHistory([]);
                                 
-                                // Immediate sync for critical clear action
-                                try {
-                                    await Promise.all([
-                                        fetch('/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }),
-                                        fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultProfile) })
-                                    ]);
-                                } catch (err) { console.error("Immediate sync failed", err); }
+                                localStorage.setItem('stream_plus_data', JSON.stringify({}));
+                                localStorage.setItem('stream_plus_profile', JSON.stringify(defaultProfile));
                             } else {
                                 setUserProfile(defaultProfile);
-                                try {
-                                    await fetch('/api/profile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(defaultProfile) });
-                                } catch (err) { console.error("Immediate profile sync failed", err); }
+                                localStorage.setItem('stream_plus_profile', JSON.stringify(defaultProfile));
                             }
                             setConfirmModal({ ...confirmModal, show: false });
                             setActiveModal(null);
