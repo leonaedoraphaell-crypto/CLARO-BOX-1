@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import { generateImage } from "./services/imageGeneration";
-import { EquipmentCategory, AppData, DailyData, EquipmentItem, AppNotification, UserProfile } from "./types";
-import { CATEGORIES, HOLIDAYS_SP } from "./constants";
 import "./index.css";
 
 function App() {
