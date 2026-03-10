@@ -22,3 +22,6 @@ export default defineConfig(({mode}) => {
     },
   };
 });
+export default {
+  base: "/CLARO-BOX-1/"
+}
